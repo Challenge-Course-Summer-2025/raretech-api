@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # FastAPI アプリケーション
+  web:
+    build: .
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - dynamodb  # DynamoDBサービスに依存
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - PYTHONPATH=/app
+      - AWS_ACCESS_KEY_ID=dummy-access-key
+      - AWS_SECRET_ACCESS_KEY=dummy-secret-key
+      - AWS_REGION=ap-northeast-1  # 東京リージョン
+      - DYNAMODB_ENDPOINT=http://dynamodb:8000  # エンドポイントURL
+    volumes:
+      - ./app:/app
+
+  # DynamoDB Local (開発用)
+  dynamodb:
+    image: amazon/dynamodb-local
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"  # ホストの8000とコンテナの8000をマッピング
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodb"
+    volumes:
+      - dynamodb-data:/home/dynamodb
+    restart: always
+
+# 名前付きボリューム
+volumes:
+  dynamodb-data:
