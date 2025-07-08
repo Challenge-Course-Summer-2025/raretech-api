@@ -18,6 +18,3 @@ exec-dynamodb:
 
 down:
 	docker compose down
-
-dev:
-	PYTHONPATH=app uvicorn main:app --reload
