@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t raretech-api ./app
+        run: docker build -t raretech-api .
 
       - name: Run flake8 in Docker
         run: docker run --rm raretech-api flake8 app
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t raretech-api ./app
+        run: docker build -t raretech-api .
 
       - name: Run API health check
         run: |
