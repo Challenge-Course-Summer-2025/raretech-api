@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 質問・相談
+    url: https://github.com/Challenge-Course-Summer-2025/raretech-api/discussions
+    about: バグや新機能以外の質問はこちら
