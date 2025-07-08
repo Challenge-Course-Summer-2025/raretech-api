@@ -6,7 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 
 import os
-from api.api import router as api_router
+from app.api.api import router as api_router
 
 app = FastAPI()
 
