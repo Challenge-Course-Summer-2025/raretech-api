@@ -16,10 +16,8 @@ watchfiles==1.1.0
 boto3==1.39.9
 botocore==1.39.9
 
-# 認証
+# 認証（Cognito JWT 検証で使用）
 python-jose==3.5.0
-passlib[bcrypt]==1.7.4
-bcrypt==3.2.0
 
 # レート制限
 slowapi==0.1.9
