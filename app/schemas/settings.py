@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
 from typing import List
 from datetime import datetime
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SettingsResponse(BaseModel):
@@ -12,8 +12,7 @@ class SettingsResponse(BaseModel):
     counseling_link: str
     last_checked_at: datetime
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class UpdateSettingsRequest(BaseModel):

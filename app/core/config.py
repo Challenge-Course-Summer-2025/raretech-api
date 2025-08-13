@@ -1,27 +1,34 @@
-from pydantic_settings import BaseSettings
+from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    ENV: str
-    DEBUG: bool
-    USE_DYNAMODB: bool
+    # App
+    ENV: str = "dev"
+    DEBUG: bool = True
 
-    SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_SECONDS: int
-    REFRESH_TOKEN_EXPIRE_DAYS: int
+    # Auth provider
+    AUTH_PROVIDER: str = "cognito"
 
-    DYNAMODB_ENDPOINT: str
+    # Cognito
+    COGNITO_REGION: str
+    COGNITO_USER_POOL_ID: str
+    COGNITO_JWKS_URL: str
+    COGNITO_ISSUER: str
+    COGNITO_ACCEPTED_TOKEN_USE: str = "access"
+    COGNITO_APP_CLIENT_ID: str | None = None
+
+    # DynamoDB
+    USE_DYNAMODB: bool = True
+    ADMIN_TABLE_NAME: str = "AdminsTable"
+    DYNAMODB_ENDPOINT: str | None = None
     AWS_REGION: str
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
-    ADMIN_TABLE_NAME: str
 
-    BITLY_ACCESS_TOKEN: str
-
-    DEV_ADMIN_ID: str
-    DEV_ADMIN_EMAIL: str
-    DEV_ADMIN_PASSWORD: str
-    DEV_ADMIN_NAME: str
+    # Short.io
+    SHORTIO_API_KEY: str | None = None
+    SHORTIO_DOMAIN: str | None = None
 
     class Config:
         env_file = ".env"
