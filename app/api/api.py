@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.endpoints import auth, dashboard, posts, settings, templates, metrics
+from api.endpoints import dashboard, posts, settings, templates, metrics
 
 router = APIRouter()
 
