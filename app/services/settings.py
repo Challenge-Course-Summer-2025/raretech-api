@@ -15,7 +15,7 @@ async def get_settings() -> SettingsResponse:
                 excluded_keywords=[],
                 trial_class_link="",
                 counseling_link="",
-                last_checked_at=datetime.utcnow().isoformat()
+                last_checked_at=datetime.utcnow(),
             )
 
         return SettingsResponse(**settings_dict)
