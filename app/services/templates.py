@@ -1,4 +1,4 @@
-from clients.dynamodb import (get_templates_data, create_template_data, update_template_data, delete_template_data)
+from clients.dynamodb import (get_templates_data, create_template_data, update_template_data, delete_template_data, activate_template_data)
 
 async def get_templates():
     return get_templates_data()
@@ -11,3 +11,6 @@ async def update_template(template_id: str, template: dict):
 
 async def delete_template(template_id: str):
     return delete_template_data(template_id)
+
+async def activate_template(template_id: str):
+    return activate_template_data(template_id)

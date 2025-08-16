@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from core.security_cognito import verify_admin as verify_admin_dep
-from services.templates import (get_templates, create_template, update_template, delete_template)
+from services.templates import (get_templates, create_template, update_template, delete_template, activate_template)
 
 router = APIRouter()
 
@@ -19,6 +19,13 @@ async def edit_template(
     _: dict = Depends(verify_admin_dep),
 ):
     return await update_template(template_id, template_data)
+
+@router.patch("/templates/{template_id}/activate")
+async def activate_template_api(
+    template_id: str,
+    _: dict = Depends(verify_admin_dep),
+):
+    return await activate_template(template_id)
 
 @router.delete("/templates/{template_id}")
 async def remove_template(
