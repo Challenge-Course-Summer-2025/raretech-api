@@ -5,19 +5,10 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class SettingsResponse(BaseModel):
     settings_id: str = Field(..., alias="id")
-    check_interval: int
-    excluded_users: List[str]
-    excluded_keywords: List[str]
-    trial_class_link: str
-    counseling_link: str
-    last_checked_at: datetime
+    ab_test_ratio: Dict[str, int] 
 
     model_config = ConfigDict(populate_by_name=True)
 
 
 class UpdateSettingsRequest(BaseModel):
-    check_interval: int
-    excluded_users: List[str]
-    excluded_keywords: List[str]
-    trial_class_link: str
-    counseling_link: str
+    ab_test_ratio: Dict[str, int]
