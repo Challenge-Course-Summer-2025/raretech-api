@@ -1,14 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
 
 class TemplateItem(BaseModel):
-    template_id: str
+    template_id: str = Field(..., alias="id")
     template: str
     is_active: int
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class TemplateCreate(BaseModel):
@@ -22,8 +24,10 @@ class TemplateUpdate(BaseModel):
 
 
 class TemplateResponse(BaseModel):
-    template_id: str
+    template_id: str = Field(..., alias="id")
     template: str
     is_active: int
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(populate_by_name=True)

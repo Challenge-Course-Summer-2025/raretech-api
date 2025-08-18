@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -16,19 +16,27 @@ class Settings(BaseSettings):
     COGNITO_JWKS_URL: str
     COGNITO_ISSUER: str
     COGNITO_ACCEPTED_TOKEN_USE: str = "access"
-    COGNITO_APP_CLIENT_ID: str | None = None
+    COGNITO_APP_CLIENT_ID: Optional[str] = None
 
-    # DynamoDB
+    # DynamoDB 接続
     USE_DYNAMODB: bool = True
-    ADMIN_TABLE_NAME: str = "AdminsTable"
-    DYNAMODB_ENDPOINT: str | None = None
     AWS_REGION: str
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: str
+    DYNAMODB_ENDPOINT: Optional[str] = None
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+
+    # DynamoDB テーブル名
+    ADMINS_TABLE_NAME: str = "Admins"
+    SETTINGS_TABLE_NAME: str = "Settings"
+    TEMPLATES_TABLE_NAME: str = "Templates"
+    POSTS_TABLE_NAME: str = "Posts"
+    ARTICLE_LINK_CLICKS_TABLE_NAME: str = "Article_link_clicks"
+    STATIC_LINK_CLICKS_TABLE_NAME: str = "Static_link_clicks"
+    API_STATUS_TABLE_NAME: str = "API_status"
 
     # Short.io
-    SHORTIO_API_KEY: str | None = None
-    SHORTIO_DOMAIN: str | None = None
+    SHORTIO_API_KEY: Optional[str] = None
+    SHORTIO_DOMAIN: Optional[str] = None
 
     class Config:
         env_file = ".env"

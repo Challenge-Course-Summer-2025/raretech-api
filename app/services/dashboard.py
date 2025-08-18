@@ -1,22 +1,12 @@
+from __future__ import annotations
 from decimal import Decimal
-import os
-import boto3
+from typing import Dict
 from core.config import settings
-from clients.dynamodb import get_post_data
-
-# テーブル名
-ARTICLE_LINK_CLICKS_TABLE = os.getenv("ARTICLE_LINK_CLICKS_TABLE_NAME", "Article_link_clicks")
-STATIC_LINK_CLICKS_TABLE = os.getenv("STATIC_LINK_CLICKS_TABLE_NAME", "Static_link_clicks")
+from clients.dynamodb import get_dynamodb_resource, get_post_data
 
 
 def _dynamo():
-    return boto3.resource(
-        "dynamodb",
-        region_name=settings.AWS_REGION,
-        endpoint_url=settings.DYNAMODB_ENDPOINT or None,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-    )
+    return get_dynamodb_resource()
 
 
 def _to_int(v) -> int:
@@ -27,43 +17,47 @@ def _to_int(v) -> int:
     return 0
 
 
-def _sum_article_metrics() -> dict:
-    # Article_link_clicks から記事リンク用の合計メトリクスを算出
-    tbl = _dynamo().Table(ARTICLE_LINK_CLICKS_TABLE)
-    clicks_article_total = 0
-    tweet_views_total = 0
+# DynamoDB に保存済みのクリック・閲覧データを集計（Posts）
+def _sum_posts_article_metrics() -> Dict[str, int | float]:
+    tbl = _dynamo().Table(settings.POSTS_TABLE_NAME)
+
+    clicks_total = 0
+    views_total = 0
     start_key = None
     while True:
         if start_key:
             resp = tbl.scan(
                 ExclusiveStartKey=start_key,
-                ProjectionExpression="clicks_article, tweet_views",
+                ProjectionExpression="clicks_article, x_views",
             )
         else:
             resp = tbl.scan(
-                ProjectionExpression="clicks_article, tweet_views",
+                ProjectionExpression="clicks_article, x_views",
             )
+
         for item in resp.get("Items", []):
-            clicks_article_total += _to_int(item.get("clicks_article"))
-            tweet_views_total += _to_int(item.get("tweet_views"))
+            clicks_total += _to_int(item.get("clicks_article"))
+            views_total += _to_int(item.get("x_views"))
+
         start_key = resp.get("LastEvaluatedKey")
         if not start_key:
             break
 
-    ctr_article = round((clicks_article_total / tweet_views_total) * 100, 2) if tweet_views_total else 0.0
+    ctr_weighted = round((clicks_total / views_total) * 100, 3) if views_total else 0.0
     return {
-        "clicks_article_total": clicks_article_total,
-        "tweet_views_total": tweet_views_total,
-        "ctr_article": ctr_article,
+        "clicks_article_total": clicks_total,
+        "x_views_total": views_total,
+        "ctr_article": ctr_weighted,  # 合計から再計算した加重CTR(%)
     }
 
 
-def _sum_static_metrics() -> dict:
-    # Static_link_clicks から固定リンク(体験授業/カウンセリング)の合計メトリクスを算出
-    tbl = _dynamo().Table(STATIC_LINK_CLICKS_TABLE)
-    clicks_trial_lesson_total = 0
-    clicks_counseling_total = 0
-    tweet_views_total = 0
+# DynamoDB に保存済みのクリック・閲覧データを集計（固定リンク = Static_link_clicks）
+def _sum_static_metrics() -> Dict[str, int | float]:
+    tbl = _dynamo().Table(settings.STATIC_LINK_CLICKS_TABLE_NAME)
+
+    clicks_trial_total = 0
+    clicks_counsel_total = 0
+    views_total = 0
     start_key = None
     while True:
         if start_key:
@@ -75,59 +69,60 @@ def _sum_static_metrics() -> dict:
             resp = tbl.scan(
                 ProjectionExpression="clicks_trial_lesson, clicks_counseling, tweet_views",
             )
+
         for item in resp.get("Items", []):
-            clicks_trial_lesson_total += _to_int(item.get("clicks_trial_lesson"))
-            clicks_counseling_total += _to_int(item.get("clicks_counseling"))
-            tweet_views_total += _to_int(item.get("tweet_views"))
+            clicks_trial_total += _to_int(item.get("clicks_trial_lesson"))
+            clicks_counsel_total += _to_int(item.get("clicks_counseling"))
+            views_total += _to_int(item.get("tweet_views"))
+
         start_key = resp.get("LastEvaluatedKey")
         if not start_key:
             break
 
-    ctr_trial = round((clicks_trial_lesson_total / tweet_views_total) * 100, 2) if tweet_views_total else 0.0
-    ctr_counsel = round((clicks_counseling_total / tweet_views_total) * 100, 2) if tweet_views_total else 0.0
+    ctr_trial = round((clicks_trial_total / views_total) * 100, 3) if views_total else 0.0
+    ctr_counsel = round((clicks_counsel_total / views_total) * 100, 3) if views_total else 0.0
 
     return {
-        "clicks_trial_lesson_total": clicks_trial_lesson_total,
-        "clicks_counseling_total": clicks_counseling_total,
-        "tweet_views_total": tweet_views_total,
-        "ctr_trial_lesson": ctr_trial,
-        "ctr_counseling": ctr_counsel,
+        "clicks_trial_lesson_total": clicks_trial_total,
+        "clicks_counseling_total": clicks_counsel_total,
+        "tweet_views_total": views_total,
+        "ctr_trial_lesson": ctr_trial,      # 加重CTR(%)
+        "ctr_counseling": ctr_counsel,      # 加重CTR(%)
     }
+
 
 async def get_dashboard_data():
-    # Posts　メタデータ のみを取得
+    # Posts メタデータのみ取得
     posts = get_post_data()
     total_posts = len(posts)
 
-    # 記事リンクの集計
-    article = _sum_article_metrics()
+    # 記事リンク集計（Posts）
+    article = _sum_posts_article_metrics()
 
-    # 固定リンク(体験授業/カウンセリング)の集計
+    # 固定リンク集計（Static_link_clicks）
     static = _sum_static_metrics()
 
-    # 総クリック数 = 記事リンク + 固定リンク
+    # 総クリック数 = 記事 + 固定
     total_clicks = (
         article["clicks_article_total"]
         + static["clicks_trial_lesson_total"]
         + static["clicks_counseling_total"]
     )
 
-    # CTR
     summary = {
         "total_posts": total_posts,
         "total_clicks": total_clicks,
-        # 主要KPIを明示的に分けて返す
         "article": {
             "clicks": article["clicks_article_total"],
-            "tweet_views": article["tweet_views_total"],
-            "ctr": article["ctr_article"],  # 記事リンクのCTR
+            "x_views": article["x_views_total"],
+            "ctr": article["ctr_article"],
         },
         "static_links": {
             "clicks_trial_lesson": static["clicks_trial_lesson_total"],
             "clicks_counseling": static["clicks_counseling_total"],
             "tweet_views": static["tweet_views_total"],
-            "ctr_trial_lesson": static["ctr_trial_lesson"],  # 体験授業のCTR
-            "ctr_counseling": static["ctr_counseling"],      # カウンセリングのCTR
+            "ctr_trial_lesson": static["ctr_trial_lesson"],
+            "ctr_counseling": static["ctr_counseling"],
         },
         "error_count": 0,
     }
