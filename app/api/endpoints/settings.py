@@ -14,5 +14,5 @@ async def update_settings_api(
     settings: UpdateSettingsRequest,
     _: dict = Depends(verify_admin_dep),
 ):
-    await update_settings(settings)
+    await update_settings(settings.model_dump(by_alias=True))
     return {"message": "設定が更新されました。"}

@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends
 from core.security_cognito import verify_admin as verify_admin_dep
-from services.templates import (get_templates, create_template, update_template, delete_template, activate_template)
+from services.templates import (
+    get_templates,
+    create_template,
+    update_template,
+    delete_template,
+    activate_template,
+)
 
 router = APIRouter()
 
