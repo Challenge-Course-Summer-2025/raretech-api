@@ -1,36 +1,42 @@
 import boto3
-from boto3.dynamodb.conditions import Key
 from core.config import settings
 from datetime import datetime
 from typing import Dict, Any, List
 
-# テーブル名
-ADMIN_TABLE_NAME = settings.ADMIN_TABLE_NAME
-SETTINGS_TABLE_NAME = "SettingsTable"
-TEMPLATES_TABLE_NAME = "TemplatesTable"
-POSTS_TABLE_NAME = "Posts"
+def get_dynamodb_resource():
+    kwargs = {"region_name": settings.AWS_REGION}
 
+    if settings.DYNAMODB_ENDPOINT:
+        kwargs["endpoint_url"] = settings.DYNAMODB_ENDPOINT
 
-# boto3 DynamoDB クライアント
-dynamodb = boto3.resource(
-    "dynamodb",
-    region_name=settings.AWS_REGION,
-    endpoint_url=settings.DYNAMODB_ENDPOINT,
-    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-)
+    if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+        kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
+        kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
 
-# テーブルの定義
-admins_table = dynamodb.Table(ADMIN_TABLE_NAME)
-settings_table = dynamodb.Table(SETTINGS_TABLE_NAME)
-templates_table = dynamodb.Table(TEMPLATES_TABLE_NAME)
-posts_table = dynamodb.Table(POSTS_TABLE_NAME)
+    return boto3.resource("dynamodb", **kwargs)
+
+# テーブルハンドル
+_dynamo = get_dynamodb_resource()
+settings_table = _dynamo.Table(settings.SETTINGS_TABLE_NAME)
+templates_table = _dynamo.Table(settings.TEMPLATES_TABLE_NAME)
+posts_table = _dynamo.Table(settings.POSTS_TABLE_NAME)
+
 
 # 投稿データ取得
 def get_post_data() -> List[Dict[str, Any]]:
     try:
-        resp = posts_table.scan()
-        return resp.get("Items", [])
+        items: List[Dict[str, Any]] = []
+        start_key = None
+        while True:
+            if start_key:
+                resp = posts_table.scan(ExclusiveStartKey=start_key)
+            else:
+                resp = posts_table.scan()
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if not start_key:
+                break
+        return items
     except Exception as e:
         print(f"DynamoDBからの投稿データ取得に失敗しました: {e}")
         return []
@@ -69,8 +75,18 @@ def update_settings_data(data: Dict[str, Any]) -> bool:
 # テンプレート一覧取得
 def get_templates_data() -> List[Dict[str, Any]]:
     try:
-        resp = templates_table.scan()
-        return resp.get("Items", [])
+        items: List[Dict[str, Any]] = []
+        start_key = None
+        while True:
+            if start_key:
+                resp = templates_table.scan(ExclusiveStartKey=start_key)
+            else:
+                resp = templates_table.scan()
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if not start_key:
+                break
+        return items
     except Exception as e:
         print(f"テンプレート一覧の取得に失敗しました: {e}")
         return []
@@ -107,8 +123,17 @@ def delete_template_data(template_id: str) -> Dict[str, str]:
 def activate_template_data(template_id: str) -> Dict[str, str]:
     try:
         # 全件取得して一括更新
-        resp = templates_table.scan()
-        items = resp.get("Items", [])
+        items: List[Dict[str, Any]] = []
+        start_key = None
+        while True:
+            if start_key:
+                resp = templates_table.scan(ExclusiveStartKey=start_key)
+            else:
+                resp = templates_table.scan()
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if not start_key:
+                break
 
         with templates_table.batch_writer() as batch:
             for it in items:
