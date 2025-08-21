@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Dict, Any, Optional
 from clients.dynamodb import (
     get_templates_data,
     create_template_data,
