@@ -4,8 +4,10 @@ from typing import Dict
 from core.config import settings
 from clients.dynamodb import get_dynamodb_resource, get_post_data
 
+
 def _dynamo():
     return get_dynamodb_resource()
+
 
 def _to_int(v) -> int:
     if isinstance(v, Decimal):
@@ -13,6 +15,7 @@ def _to_int(v) -> int:
     if isinstance(v, (int, float)):
         return int(v)
     return 0
+
 
 async def get_metrics() -> dict:
     # 投稿件数
