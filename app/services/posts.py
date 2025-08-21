@@ -1,10 +1,12 @@
+from __future__ import annotations
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from clients.dynamodb import get_post_data
 from schemas.posts import PostListItem
+from core.x_post_validator import validate_x_post_length, XPostLengthResult
+
 
 def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
-
     # 既存データの互換のため、idエイリアスを補完
     normalized = {
         "id": src.get("id") or src.get("post_id"),
@@ -63,3 +65,8 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
         "total": total,
         "posts": dto_list,
     }
+
+# X投稿テキストをサーバー側で検証する公開関数
+def validate_x_post_text(text: str) -> XPostLengthResult:
+    # エンドポイント層からそのまま呼べるように services に用意
+    return validate_x_post_length(text or "")
