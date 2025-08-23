@@ -9,10 +9,6 @@ def get_dynamodb_resource():
     if settings.DYNAMODB_ENDPOINT:
         kwargs["endpoint_url"] = settings.DYNAMODB_ENDPOINT
 
-    if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
-        kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
-        kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
-
     return boto3.resource("dynamodb", **kwargs)
 
 # テーブルハンドル
