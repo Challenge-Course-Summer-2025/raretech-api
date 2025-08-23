@@ -1,14 +1,9 @@
-# ベースとなるイメージを指定（AWS Lambda 用の公式 Python 3.11 ランタイムイメージ）
 FROM public.ecr.aws/lambda/python:3.11
 
-# 依存関係ファイルをコンテナにコピー（requirements.txt を現在の作業ディレクトリにコピー）
 COPY app/requirements.txt .
-
-# 依存関係をインストール（キャッシュを使わずに軽量化）
 RUN pip install --no-cache-dir -r requirements.txt
 
-# アプリケーション本体をすべてコンテナにコピー（app ディレクトリの中身を LAMBDA_TASK_ROOT に配置）
-COPY app/ ${LAMBDA_TASK_ROOT}
+# ★ ここを修正：app/ ディレクトリごと /var/task/app/ に配置
+COPY app/ ${LAMBDA_TASK_ROOT}/app/
 
-# Lambda のエントリポイントを指定（app/lambda_handler.py 内の handler を起動）
 CMD ["app.lambda_handler.handler"]
