@@ -3,7 +3,11 @@ FROM public.ecr.aws/lambda/python:3.11
 COPY app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ★ ここを修正：app/ ディレクトリごと /var/task/app/ に配置
+# app ディレクトリごと配置
 COPY app/ ${LAMBDA_TASK_ROOT}/app/
 
+# ← これがポイント：/var/task/app を import パスに追加
+ENV PYTHONPATH="${LAMBDA_TASK_ROOT}/app:${PYTHONPATH}"
+
+# ハンドラーはそのまま
 CMD ["app.lambda_handler.handler"]
