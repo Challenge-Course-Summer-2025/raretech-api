@@ -16,6 +16,9 @@ watchfiles==1.1.0
 boto3==1.39.9
 botocore==1.39.9
 
+# AWS Lambda
+mangum==0.17.0
+
 # 認証（Cognito JWT 検証で使用）
 python-jose==3.5.0
 
