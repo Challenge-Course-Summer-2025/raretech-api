@@ -90,7 +90,19 @@ def get_templates_data() -> List[Dict[str, Any]]:
 # テンプレート作成
 def create_template_data(template: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        templates_table.put_item(Item=template)
+        from uuid import uuid4
+        now = datetime.utcnow().isoformat()
+        item = {
+            "PK": "TEMPLATES",
+            "SK": now,
+            "id": template.get("id", str(uuid4())),
+            "template": template.get("template", ""),
+            "is_active": template.get("is_active", 0),
+            "created_at": now,
+            "updated_at": now,
+            # 他に必要な属性があれば追加
+        }
+        templates_table.put_item(Item=item)
         return {"message": "テンプレートを登録しました。"}
     except Exception as e:
         print(f"テンプレートの作成に失敗しました: {e}")
@@ -143,4 +155,4 @@ def activate_template_data(template_id: str) -> Dict[str, str]:
         return {"message": "テンプレートを有効化しました。"}
     except Exception as e:
         print(f"テンプレートの有効化に失敗しました: {e}")
-        return {"message": "テンプレートの有効化に失敗しました。"}    
+        return {"message": "テンプレートの有効化に失敗しました。"}
