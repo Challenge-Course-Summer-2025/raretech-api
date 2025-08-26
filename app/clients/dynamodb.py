@@ -90,7 +90,19 @@ def get_templates_data() -> List[Dict[str, Any]]:
 # テンプレート作成
 def create_template_data(template: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        templates_table.put_item(Item=template)
+        from uuid import uuid4
+        now = datetime.utcnow().isoformat()
+        item = {
+            "PK": "TEMPLATES",
+            "SK": now,
+            "id": template.get("id", str(uuid4())),
+            "template": template.get("template", ""),
+            "is_active": template.get("is_active", 0),
+            "created_at": now,
+            "updated_at": now,
+            # 他に必要な属性があれば追加
+        }
+        templates_table.put_item(Item=item)
         return {"message": "テンプレートを登録しました。"}
     except Exception as e:
         print(f"テンプレートの作成に失敗しました: {e}")
@@ -99,7 +111,18 @@ def create_template_data(template: Dict[str, Any]) -> Dict[str, Any]:
 # テンプレート更新
 def update_template_data(template_id: str, template: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        item = {**template, "id": template_id}
+        # idからPK, SKを特定
+        resp = templates_table.scan(
+            FilterExpression="id = :tid",
+            ExpressionAttributeValues={":tid": template_id}
+        )
+        items = resp.get("Items", [])
+        if not items:
+            return {"message": "テンプレートが見つかりませんでした。"}
+        item = items[0]
+        # 更新内容を反映
+        item.update(template)
+        item["updated_at"] = datetime.utcnow().isoformat()
         templates_table.put_item(Item=item)
         return {"message": "テンプレートを更新しました。"}
     except Exception as e:
@@ -109,7 +132,16 @@ def update_template_data(template_id: str, template: Dict[str, Any]) -> Dict[str
 # テンプレート削除
 def delete_template_data(template_id: str) -> Dict[str, str]:
     try:
-        templates_table.delete_item(Key={"id": template_id})
+        # idからPK, SKを特定
+        resp = templates_table.scan(
+            FilterExpression="id = :tid",
+            ExpressionAttributeValues={":tid": template_id}
+        )
+        items = resp.get("Items", [])
+        if not items:
+            return {"message": "テンプレートが見つかりませんでした。"}
+        item = items[0]
+        templates_table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
         return {"message": "テンプレートを削除しました。"}
     except Exception as e:
         print(f"テンプレートの削除に失敗しました: {e}")
@@ -143,4 +175,4 @@ def activate_template_data(template_id: str) -> Dict[str, str]:
         return {"message": "テンプレートを有効化しました。"}
     except Exception as e:
         print(f"テンプレートの有効化に失敗しました: {e}")
-        return {"message": "テンプレートの有効化に失敗しました。"}    
+        return {"message": "テンプレートの有効化に失敗しました。"}
