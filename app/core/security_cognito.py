@@ -18,6 +18,7 @@ _JWKS_CACHE: Optional[Dict[str, Any]] = None
 _JWKS_CACHE_AT: float = 0.0
 _JWKS_TTL = 60 * 60
 
+
 def _load_jwks() -> Dict[str, Any]:
     global _JWKS_CACHE, _JWKS_CACHE_AT
     now = time.time()
@@ -28,6 +29,7 @@ def _load_jwks() -> Dict[str, Any]:
         _JWKS_CACHE = json.loads(body)
         _JWKS_CACHE_AT = now
         return _JWKS_CACHE
+
 
 def _verify_signature(token: str, kid: str) -> Dict[str, Any]:
     jwks = _load_jwks()
@@ -44,6 +46,7 @@ def _verify_signature(token: str, kid: str) -> Dict[str, Any]:
 
     # 署名OKなら未検証クレームを返す
     return jwt.get_unverified_claims(token)
+
 
 def _validate_claims(claims: Dict[str, Any]) -> None:
     # iss
@@ -65,9 +68,28 @@ def _validate_claims(claims: Dict[str, Any]) -> None:
         if aud != settings.COGNITO_APP_CLIENT_ID:
             raise HTTPException(status_code=401, detail="Invalid audience")
 
+
 async def verify_admin(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> Dict[str, Any]:
+    # ローカル開発用: Cognito をスキップして dummy-sub を返す
+    if settings.ENV in ("local", "dev"):
+        sub = "dummy-sub"
+        admin = await get_admin_by_sub(sub)
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin not registered (local dummy-sub not found)"
+            )
+        return {
+            "admin_id": admin.get("admin_id"),
+            "email": admin.get("email"),
+            "user_name": admin.get("user_name"),
+            "created_at": admin.get("created_at"),
+            "updated_at": admin.get("updated_at"),
+        }
+
+    # Cognito 認証
     token = credentials.credentials
 
     try:
@@ -79,7 +101,6 @@ async def verify_admin(
         raise HTTPException(status_code=401, detail="kid missing")
 
     claims = _verify_signature(token, kid)
-
     _validate_claims(claims)
 
     sub = claims.get("sub")
