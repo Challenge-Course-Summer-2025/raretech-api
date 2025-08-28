@@ -1,11 +1,11 @@
 import boto3
 from botocore.exceptions import ClientError
 
-# DynamoDB Local 接続設定（コンテナ内から）
+# DynamoDB Local 接続設定（コンテナ内から接続する）
 dynamodb = boto3.client(
     "dynamodb",
     region_name="ap-northeast-1",
-    endpoint_url="http://dynamodb:8000",  # ← 修正ポイント！
+    endpoint_url="http://dynamodb:8000",
     aws_access_key_id="dummy",
     aws_secret_access_key="dummy",
 )
