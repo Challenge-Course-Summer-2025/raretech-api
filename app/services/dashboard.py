@@ -131,15 +131,15 @@ async def get_dashboard_data():
         post_id = post.get("id") or post.get("post_id")
         post["clicks_article"] = article_clicks_map.get(post_id, 0)
 
-    # 記事リンク集計（Posts）
-    article = _sum_posts_article_metrics()
+    # 記事クリック数をArticle_link_clicksから合計
+    article_clicks_total = sum(article_clicks_map.values())
 
     # 固定リンク集計（Static_link_clicks）
     static = _sum_static_metrics()
 
-    # 総クリック数 = 記事 + 固定
+    # 総クリック数 = 記事(Article_link_clicks) + 固定
     total_clicks = (
-        article["clicks_article_total"]
+        article_clicks_total
         + static["clicks_trial_lesson_total"]
         + static["clicks_counseling_total"]
     )
@@ -148,9 +148,10 @@ async def get_dashboard_data():
         "total_posts": total_posts,
         "total_clicks": total_clicks,
         "article": {
-            "clicks": article["clicks_article_total"],
-            "x_views": article["x_views_total"],
-            "ctr": article["ctr_article"],
+            "clicks": article_clicks_total,
+            # x_viewsやctrは_posts_article_metrics()を使わない場合は0やNoneでOK
+            "x_views": 0,
+            "ctr": 0,
         },
         "static_links": {
             "clicks_trial_lesson": static["clicks_trial_lesson_total"],
