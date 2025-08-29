@@ -35,10 +35,13 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
         if post_id:
             click_map[post_id] = clicks
     
-    # 投稿データにクリック数を統合
+    # 投稿データにクリック数を統合 & トータルクリック数を計算
+    total_clicks = 0  # トータルクリック数を追加
     for post in posts:
         post_id = post.get("id") or post.get("post_id")
-        post["clicks_article"] = click_map.get(post_id, 0)
+        clicks = click_map.get(post_id, 0)
+        post["clicks_article"] = clicks
+        total_clicks += clicks  # トータルに加算
 
     # 検索条件があればフィルタリング
     if search:
@@ -72,6 +75,7 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
                         "author": p.get("author", ""),
                         "template_id": p.get("template_id"),
                         "created_at": p.get("created_at", datetime.utcnow().isoformat()),
+                        "clicks_article": 0,  # デフォルト値を追加
                     }
                 )
             )
@@ -80,6 +84,7 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
         "page": page,
         "limit": limit,
         "total": total,
+        "total_clicks": total_clicks,  # トータルクリック数を追加
         "posts": dto_list,
     }
 
