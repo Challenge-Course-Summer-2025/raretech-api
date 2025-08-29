@@ -1,9 +1,21 @@
 from __future__ import annotations
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import pytz
 from clients.dynamodb import get_post_data, get_article_click_counts
 from schemas.posts import PostListItem
 from core.x_post_validator import validate_x_post_length, XPostLengthResult
+
+
+tokyo = pytz.timezone("Asia/Tokyo")
+
+
+def _convert_to_tokyo(utc_str: str) -> str:
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(tokyo).isoformat()
+    except Exception:
+        return utc_str
 
 
 def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
@@ -11,17 +23,21 @@ def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
     clicks = src.get("clicks_article", 0)
     print(f"_to_post_list_item_dict: ID={src.get('id')}, clicks={clicks}")
     
+    created_raw = src.get("created_at", datetime.utcnow().isoformat())
+    created_jst = _convert_to_tokyo(created_raw)
+
     normalized = {
         "id": src.get("id") or src.get("post_id"),
         "qiita_id": src.get("qiita_id", ""),
         "title": src.get("title", ""),
         "author": src.get("author", ""),
         "template_id": src.get("template_id"),
-        "created_at": src.get("created_at", datetime.utcnow().isoformat()),
+        "created_at": created_jst,  # JSTに変換して返す
         "clicks_article": clicks,  # クリック数を追加
     }
     item = PostListItem.model_validate(normalized)
     return item.model_dump(by_alias=True)
+
 
 async def get_posts(page: int, limit: int, search: Optional[str] = None):
     # DynamoDB から全投稿を取得（メタデータのみ）
@@ -44,7 +60,7 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
     click_map = {}
     for click_data in click_counts:
         post_id = click_data.get('post_id')
-        clicks = int(click_data.get('clicks_article', 0))
+        clicks = int(click_data.get('clicks_article') or 0)
         print(f"クリックマッピング: {post_id} -> {clicks}")
         if post_id:
             click_map[post_id] = clicks
@@ -94,7 +110,9 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
                         "title": p.get("title", ""),
                         "author": p.get("author", ""),
                         "template_id": p.get("template_id"),
-                        "created_at": p.get("created_at", datetime.utcnow().isoformat()),
+                        "created_at": _convert_to_tokyo(
+                            p.get("created_at", datetime.utcnow().isoformat())
+                        ),
                         "clicks_article": 0,  # デフォルト値を追加
                     }
                 )
