@@ -91,10 +91,45 @@ def _sum_static_metrics() -> Dict[str, int | float]:
     }
 
 
+# Article_link_clicksテーブルからpost_idごとの最新clicks_articleを取得
+def _get_article_clicks_map() -> Dict[str, int]:
+    tbl = _dynamo().Table(settings.ARTICLE_LINK_CLICKS_TABLE_NAME)
+    clicks_map = {}
+    start_key = None
+    while True:
+        if start_key:
+            resp = tbl.scan(ExclusiveStartKey=start_key)
+        else:
+            resp = tbl.scan()
+        for item in resp.get("Items", []):
+            post_id = item.get("post_id")
+            clicks_article = _to_int(item.get("clicks_article"))
+            # 最新のchecked_atのものを優先（同じpost_idが複数ある場合）
+            if post_id:
+                if post_id not in clicks_map or item.get("checked_at", "") > clicks_map[post_id]["checked_at"]:
+                    clicks_map[post_id] = {
+                        "clicks_article": clicks_article,
+                        "checked_at": item.get("checked_at", "")
+                    }
+        start_key = resp.get("LastEvaluatedKey")
+        if not start_key:
+            break
+    # post_id: clicks_article のみに変換
+    return {k: v["clicks_article"] for k, v in clicks_map.items()}
+
+
 async def get_dashboard_data():
     # Posts メタデータのみ取得
     posts = get_post_data()
     total_posts = len(posts)
+
+    # Article_link_clicksからクリック数を取得
+    article_clicks_map = _get_article_clicks_map()
+
+    # 各投稿にclicks_articleを付与
+    for post in posts:
+        post_id = post.get("id") or post.get("post_id")
+        post["clicks_article"] = article_clicks_map.get(post_id, 0)
 
     # 記事リンク集計（Posts）
     article = _sum_posts_article_metrics()
@@ -119,7 +154,7 @@ async def get_dashboard_data():
         },
         "static_links": {
             "clicks_trial_lesson": static["clicks_trial_lesson_total"],
-            "clicks_counseling": static["clicks_counseling_total"],
+            "clicks_counseling_total": static["clicks_counseling_total"],
             "tweet_views": static["tweet_views_total"],
             "ctr_trial_lesson": static["ctr_trial_lesson"],
             "ctr_counseling": static["ctr_counseling"],
