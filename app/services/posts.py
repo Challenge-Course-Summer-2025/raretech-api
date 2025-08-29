@@ -7,7 +7,10 @@ from core.x_post_validator import validate_x_post_length, XPostLengthResult
 
 
 def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
-    # 既存データの互換のため、idエイリアスを補完
+    # デバッグログを追加
+    clicks = src.get("clicks_article", 0)
+    print(f"_to_post_list_item_dict: ID={src.get('id')}, clicks={clicks}")
+    
     normalized = {
         "id": src.get("id") or src.get("post_id"),
         "qiita_id": src.get("qiita_id", ""),
@@ -15,7 +18,7 @@ def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
         "author": src.get("author", ""),
         "template_id": src.get("template_id"),
         "created_at": src.get("created_at", datetime.utcnow().isoformat()),
-        "clicks_article": src.get("clicks_article", 0),  # クリック数を追加
+        "clicks_article": clicks,  # クリック数を追加
     }
     item = PostListItem.model_validate(normalized)
     return item.model_dump(by_alias=True)
