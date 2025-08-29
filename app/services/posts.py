@@ -16,6 +16,7 @@ def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
         "author": src.get("author", ""),
         "template_id": src.get("template_id"),
         "created_at": src.get("created_at", datetime.utcnow().isoformat()),
+        "clicks_article": src.get("clicks_article", 0),  # ← 追加
     }
     item = PostListItem.model_validate(normalized)
     return item.model_dump(by_alias=True)
