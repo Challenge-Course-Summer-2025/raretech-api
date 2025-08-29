@@ -27,22 +27,39 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
     # クリック数データを取得
     click_counts = get_article_click_counts()
     
+    # デバッグログを追加
+    print(f"=== デバッグ情報 ===")
+    print(f"投稿データ数: {len(posts)}")
+    print(f"クリックデータ数: {len(click_counts)}")
+    
+    if posts:
+        print(f"投稿例: {posts[0]}")
+    if click_counts:
+        print(f"クリック例: {click_counts[0]}")
+    
     # クリック数をpost_idでマッピング
     click_map = {}
     for click_data in click_counts:
         post_id = click_data.get('post_id')
         clicks = int(click_data.get('clicks_article', 0))
+        print(f"クリックマッピング: {post_id} -> {clicks}")
         if post_id:
             click_map[post_id] = clicks
     
+    print(f"click_map: {click_map}")
+    
     # 投稿データにクリック数を統合 & トータルクリック数を計算
-    total_clicks = 0  # トータルクリック数を追加
+    total_clicks = 0
     for post in posts:
         post_id = post.get("id") or post.get("post_id")
         clicks = click_map.get(post_id, 0)
+        print(f"投稿マッチング: {post_id} -> {clicks}")
         post["clicks_article"] = clicks
-        total_clicks += clicks  # トータルに加算
+        total_clicks += clicks
 
+    print(f"total_clicks: {total_clicks}")
+    print("=== デバッグ終了 ===")
+    
     # 検索条件があればフィルタリング
     if search:
         q = search.lower()
