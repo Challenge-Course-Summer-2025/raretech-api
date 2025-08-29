@@ -21,6 +21,13 @@ def _convert_to_tokyo(utc_str: str) -> str:
 def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
     # デバッグログを追加
     clicks = src.get("clicks_article", 0)
+    if clicks is None:
+        clicks = 0
+    try:
+        clicks = int(clicks)
+    except Exception:
+        clicks = 0
+
     print(f"_to_post_list_item_dict: ID={src.get('id')}, clicks={clicks}")
     
     created_raw = src.get("created_at", datetime.utcnow().isoformat())
@@ -32,21 +39,17 @@ def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
         "title": src.get("title", ""),
         "author": src.get("author", ""),
         "template_id": src.get("template_id"),
-        "created_at": created_jst,  # JSTに変換して返す
-        "clicks_article": clicks,  # クリック数を追加
+        "created_at": created_jst, # JSTに変換して返す
+        "clicks_article": clicks, # クリック数を追加
     }
     item = PostListItem.model_validate(normalized)
     return item.model_dump(by_alias=True)
 
 
 async def get_posts(page: int, limit: int, search: Optional[str] = None):
-    # DynamoDB から全投稿を取得（メタデータのみ）
     posts = get_post_data()
-    
-    # クリック数データを取得
     click_counts = get_article_click_counts()
     
-    # デバッグログを追加
     print(f"=== デバッグ情報 ===")
     print(f"投稿データ数: {len(posts)}")
     print(f"クリックデータ数: {len(click_counts)}")
@@ -56,18 +59,23 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
     if click_counts:
         print(f"クリック例: {click_counts[0]}")
     
-    # クリック数をpost_idでマッピング
     click_map = {}
     for click_data in click_counts:
         post_id = click_data.get('post_id')
-        clicks = int(click_data.get('clicks_article') or 0)
+        value = click_data.get('clicks_article')
+        if value is None:
+            clicks = 0
+        else:
+            try:
+                clicks = int(value)
+            except Exception:
+                clicks = 0
         print(f"クリックマッピング: {post_id} -> {clicks}")
         if post_id:
             click_map[post_id] = clicks
     
     print(f"click_map: {click_map}")
     
-    # 投稿データにクリック数を統合 & トータルクリック数を計算
     total_clicks = 0
     for post in posts:
         post_id = post.get("id") or post.get("post_id")
@@ -79,12 +87,10 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
     print(f"total_clicks: {total_clicks}")
     print("=== デバッグ終了 ===")
     
-    # 検索条件があればフィルタリング
     if search:
         q = search.lower()
         posts = [p for p in posts if q in (p.get("title", "")).lower()]
 
-    # created_atで降順ソート
     try:
         posts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     except Exception:
@@ -113,7 +119,7 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
                         "created_at": _convert_to_tokyo(
                             p.get("created_at", datetime.utcnow().isoformat())
                         ),
-                        "clicks_article": 0,  # デフォルト値を追加
+                        "clicks_article": 0,
                     }
                 )
             )
@@ -122,9 +128,10 @@ async def get_posts(page: int, limit: int, search: Optional[str] = None):
         "page": page,
         "limit": limit,
         "total": total,
-        "total_clicks": total_clicks,  # トータルクリック数を追加
+        "total_clicks": total_clicks,
         "posts": dto_list,
     }
+
 
 # X投稿テキストをサーバー側で検証する公開関数
 def validate_x_post_text(text: str) -> XPostLengthResult:
