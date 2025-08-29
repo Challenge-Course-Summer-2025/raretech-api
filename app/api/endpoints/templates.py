@@ -6,6 +6,7 @@ from services.templates import (
     update_template,
     delete_template,
     activate_template,
+    get_template_by_id_service,
 )
 
 router = APIRouter()
@@ -13,6 +14,10 @@ router = APIRouter()
 @router.get("/templates")
 async def fetch_templates(_: dict = Depends(verify_admin_dep)):
     return await get_templates()
+
+@router.get("/templates/{template_id}")
+async def fetch_template_by_id(template_id: str, _: dict = Depends(verify_admin_dep)):
+    return await get_template_by_id_service(template_id)
 
 @router.post("/templates")
 async def add_template(template_data: dict, _: dict = Depends(verify_admin_dep)):

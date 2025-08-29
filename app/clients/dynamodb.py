@@ -198,3 +198,18 @@ def get_article_click_counts() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"クリック数データの取得に失敗しました: {e}")
         return []
+
+# 個別テンプレート取得
+def get_template_by_id(template_id: str) -> Dict[str, Any]:
+    try:
+        resp = templates_table.scan(
+            FilterExpression="id = :tid",
+            ExpressionAttributeValues={":tid": template_id}
+        )
+        items = resp.get("Items", [])
+        if not items:
+            return {"error": "テンプレートが見つかりませんでした。"}
+        return items[0]
+    except Exception as e:
+        print(f"テンプレートの取得に失敗しました: {e}")
+        return {"error": "テンプレートの取得に失敗しました。"}

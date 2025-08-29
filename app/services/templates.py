@@ -6,6 +6,7 @@ from clients.dynamodb import (
     update_template_data,
     delete_template_data,
     activate_template_data,
+    get_template_by_id,
 )
 from core.x_post_validator import validate_x_post_length, XPostLengthResult
 
@@ -28,6 +29,10 @@ async def delete_template(template_id: str):
 
 async def activate_template(template_id: str):
     return activate_template_data(template_id)
+
+
+async def get_template_by_id_service(template_id: str):
+    return get_template_by_id(template_id)
 
 
 def render_template(template: str, variables: Optional[Dict[str, Any]] = None) -> str:
