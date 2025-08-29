@@ -16,6 +16,8 @@ _dynamo = get_dynamodb_resource()
 settings_table = _dynamo.Table(settings.SETTINGS_TABLE_NAME)
 templates_table = _dynamo.Table(settings.TEMPLATES_TABLE_NAME)
 posts_table = _dynamo.Table(settings.POSTS_TABLE_NAME)
+# Article_link_clicksテーブルの設定を追加
+article_clicks_table = _dynamo.Table('Article_link_clicks')
 
 
 # 投稿データ取得
@@ -176,3 +178,23 @@ def activate_template_data(template_id: str) -> Dict[str, str]:
     except Exception as e:
         print(f"テンプレートの有効化に失敗しました: {e}")
         return {"message": "テンプレートの有効化に失敗しました。"}
+
+# クリック数データ取得
+def get_article_click_counts() -> List[Dict[str, Any]]:
+    """Article_link_clicksテーブルからクリック数を取得"""
+    try:
+        items: List[Dict[str, Any]] = []
+        start_key = None
+        while True:
+            if start_key:
+                resp = article_clicks_table.scan(ExclusiveStartKey=start_key)
+            else:
+                resp = article_clicks_table.scan()
+            items.extend(resp.get("Items", []))
+            start_key = resp.get("LastEvaluatedKey")
+            if not start_key:
+                break
+        return items
+    except Exception as e:
+        print(f"クリック数データの取得に失敗しました: {e}")
+        return []
