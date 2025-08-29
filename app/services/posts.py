@@ -1,11 +1,43 @@
 from __future__ import annotations
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from clients.dynamodb import get_post_data
+from clients.dynamodb import get_post_data, _dynamo
+from core.settings import settings
 from schemas.posts import PostListItem
 from core.x_post_validator import validate_x_post_length, XPostLengthResult
-from .dashboard import _get_article_clicks_map
 
+
+def _to_int(v) -> int:
+    try:
+        return int(v)
+    except Exception:
+        return 0
+
+# Article_link_clicksテーブルからpost_idごとの最新clicks_articleを取得
+def _get_article_clicks_map() -> Dict[str, int]:
+    tbl = _dynamo().Table(settings.ARTICLE_LINK_CLICKS_TABLE_NAME)
+    clicks_map = {}
+    start_key = None
+    while True:
+        if start_key:
+            resp = tbl.scan(ExclusiveStartKey=start_key)
+        else:
+            resp = tbl.scan()
+        for item in resp.get("Items", []):
+            post_id = item.get("post_id")
+            clicks_article = _to_int(item.get("clicks_article"))
+            # 最新のchecked_atのものを優先（同じpost_idが複数ある場合）
+            if post_id:
+                if post_id not in clicks_map or item.get("checked_at", "") > clicks_map[post_id]["checked_at"]:
+                    clicks_map[post_id] = {
+                        "clicks_article": clicks_article,
+                        "checked_at": item.get("checked_at", "")
+                    }
+        start_key = resp.get("LastEvaluatedKey")
+        if not start_key:
+            break
+    # post_id: clicks_article のみに変換
+    return {k: v["clicks_article"] for k, v in clicks_map.items()}
 
 def _to_post_list_item_dict(src: Dict[str, Any]) -> Dict[str, Any]:
     # 既存データの互換のため、idエイリアスを補完
