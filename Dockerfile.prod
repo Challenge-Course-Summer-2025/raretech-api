@@ -1,13 +1,14 @@
 FROM public.ecr.aws/lambda/python:3.11
 
+# 依存は /var/task (= ${LAMBDA_TASK_ROOT}) にインストールする
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt -t "${LAMBDA_TASK_ROOT}"
 
-# app ディレクトリごと配置
-COPY app/ ${LAMBDA_TASK_ROOT}/app/
+# アプリ本体
+COPY app/ "${LAMBDA_TASK_ROOT}/app/"
 
-# ← これがポイント：/var/task/app を import パスに追加
+# （任意）/var/task/app を import パスに追加
 ENV PYTHONPATH="${LAMBDA_TASK_ROOT}/app:${PYTHONPATH}"
 
-# ハンドラーはそのまま
+# ハンドラー
 CMD ["app.lambda_handler.handler"]
